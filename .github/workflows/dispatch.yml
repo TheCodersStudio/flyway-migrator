@@ -1,0 +1,91 @@
+name: Flyway Migrations
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Environment name'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - stage
+        - prod
+      dbHost:
+        type: string
+        description: 'Database host address'
+        required: true
+        default: 'localhost'
+      dbPort:
+        type: string
+        description: 'Database host port number, i.e. MySQL 3306, PostgreSQL 5432'
+        required: true
+      dbType:
+        description: 'Database type (MySQL/PostgreSQL)'
+        required: true
+        default: 'postgresql'
+        type: choice
+        options:
+        - postgresql
+        - mysql
+
+env:
+  FLYWAY_VERSION: 9.16.3
+  DB_NAME: postgres
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Flyway
+      run: |
+        wget -qO- https://download.red-gate.com/maven/release/org/flywaydb/enterprise/flyway-commandline/${{ env.FLYWAY_VERSION }}/flyway-commandline-${{ env.FLYWAY_VERSION }}-linux-x64.tar.gz | tar -xvz && sudo ln -s `pwd`/flyway-${{ env.FLYWAY_VERSION }}/flyway /usr/local/bin 
+    
+    - name: Run Flyway Migrations
+      env:
+        FLYWAY_URL: jdbc:${{ inputs.dbType }}://${{ inputs.dbHost }}:${{ inputs.dbPort }}/${{ env.DB_NAME }}
+        FLYWAY_USER: postgres
+        FLYWAY_PASSWORD: postgres # ${{ secrets.DB_PASSWORD }}
+        FLYWAY_SCHEMAS: flyway,public
+      run: |
+        flyway migrate
+    
+    - name: Flyway info and write result to file
+      env:
+        FLYWAY_URL: jdbc:${{ inputs.dbType }}://${{ inputs.dbHost }}:${{ inputs.dbPort }}/${{ env.DB_NAME }}
+        FLYWAY_USER: postgres
+        FLYWAY_PASSWORD: postgres # ${{ secrets.DB_PASSWORD }}
+        FLYWAY_SCHEMAS: flyway,public
+      run: |
+        flyway info > ./migration-status/$(date -u +"%Y-%m-%d|%H:%M:%S")-${{ inputs.env }}.txt
+    
+    - name: Commit changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: './migration-status/*-${{ inputs.env }}.txt'
