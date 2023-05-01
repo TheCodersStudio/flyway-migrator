@@ -1,0 +1,14 @@
+Flyway Community Edition 9.16.3 by Redgate
+See release notes here: https://rd.gt/416ObMi
+
+Database: jdbc:postgresql://localhost:5432/postgres (PostgreSQL 15.2)
+Schema version: 1
+
++-----------+---------+------------------------------+--------+---------------------+---------+----------+
+| Category  | Version | Description                  | Type   | Installed On        | State   | Undoable |
++-----------+---------+------------------------------+--------+---------------------+---------+----------+
+|           |         | << Flyway Schema Creation >> | SCHEMA | 2023-05-01 11:35:23 | Success |          |
+| Versioned | 1       | create person table          | SQL    | 2023-05-01 11:35:23 | Success | No       |
++-----------+---------+------------------------------+--------+---------------------+---------+----------+
+
+WARNING: A Flyway License was not provided; fell back to Community Edition. Please contact sales at sales@flywaydb.org for license information.
